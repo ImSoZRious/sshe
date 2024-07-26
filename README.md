@@ -1,4 +1,8 @@
-# SSHE
+<div align="center">
+  <h1>
+    SSHE
+  </h1>
+</div>
 What's after sshd, of course sshe. Minimalist ssh config manager.
 
 # Usage
