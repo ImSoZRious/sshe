@@ -7,7 +7,7 @@ pub struct Config {
 
 #[derive(Clone, PartialEq, Eq, Hash, Copy)]
 pub enum Key {
-    Hostname,
+    HostName,
     User,
     IdentityFile,
     IdentitiesOnly,
@@ -19,7 +19,7 @@ pub enum Key {
 }
 
 pub const ALL_KEYS: [Key; 9] = [
-    Key::Hostname,
+    Key::HostName,
     Key::User,
     Key::IdentityFile,
     Key::IdentitiesOnly,
@@ -30,45 +30,11 @@ pub const ALL_KEYS: [Key; 9] = [
     Key::StrictHostKeyChecking,
 ];
 
-impl Config {
-    pub fn mock() -> Vec<Self> {
-        use Key::*;
-        vec![
-            Self {
-                host: "aaa".to_owned(),
-                columns: [
-                    (Hostname, "127.0.0.1".to_owned()),
-                    (User, "John".to_owned()),
-                ]
-                .into_iter()
-                .collect(),
-            },
-            Self {
-                host: "bbb".to_owned(),
-                columns: [(Hostname, "127.0.1.1".to_owned())].into_iter().collect(),
-            },
-            Self {
-                host: "ccc".to_owned(),
-                columns: [(User, "JJJ".to_owned())].into_iter().collect(),
-            },
-            Self {
-                host: "dddd".to_owned(),
-                columns: [
-                    (User, "JJJ".to_owned()),
-                    (IdentityFile, "~/.ssh/id_rsa".to_owned()),
-                ]
-                .into_iter()
-                .collect(),
-            },
-        ]
-    }
-}
-
 impl Key {
     pub fn str(&self) -> &'static str {
         use Key::*;
         match self {
-            Hostname => "Hostname",
+            HostName => "HostName",
             User => "User",
             IdentityFile => "IdentityFile",
             IdentitiesOnly => "IdentitiesOnly",
@@ -87,7 +53,7 @@ impl TryFrom<&str> for Key {
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         use Key::*;
         match value {
-            "Hostname" => Ok(Hostname),
+            "HostName" => Ok(HostName),
             "User" => Ok(User),
             "IdentityFile" => Ok(IdentityFile),
             "IdentitiesOnly" => Ok(IdentitiesOnly),
