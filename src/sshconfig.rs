@@ -80,3 +80,23 @@ impl Key {
         }
     }
 }
+
+impl TryFrom<&str> for Key {
+    type Error = ();
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        use Key::*;
+        match value {
+            "Hostname" => Ok(Hostname),
+            "User" => Ok(User),
+            "IdentityFile" => Ok(IdentityFile),
+            "IdentitiesOnly" => Ok(IdentitiesOnly),
+            "LogLevel" => Ok(LogLevel),
+            "Port" => Ok(Port),
+            "UserKnownHostsFile" => Ok(UserKnownHostsFile),
+            "PasswordAuthentication" => Ok(PasswordAuthentication),
+            "StrictHostKeyChecking" => Ok(StrictHostKeyChecking),
+            _ => Err(()),
+        }
+    }
+}

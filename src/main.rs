@@ -15,15 +15,55 @@
 
 mod app;
 mod sshconfig;
+mod sshconfigfile;
 mod tui;
 
-use std::error::Error;
+use clap::Parser;
+use sshconfigfile::parse;
+use std::{error::Error, io::BufReader, path::PathBuf};
+
+fn default_in_file() -> PathBuf {
+    if let Some(x) = home::home_dir() {
+        x.join(".ssh").join("config")
+    } else {
+        panic!("Unable to get home directory")
+    }
+}
+
+fn default_out_file() -> PathBuf {
+    if let Some(x) = home::home_dir() {
+        x.join(".ssh").join("config.new")
+    } else {
+        panic!("Unable to get home directory")
+    }
+}
+
+#[derive(Parser)]
+#[command(version)]
+struct Args {
+    /// Input config file
+    #[arg(short, long, default_value_os_t = default_in_file())]
+    in_file: PathBuf,
+
+    /// Out file
+    #[arg(short, long, default_value_os_t = default_out_file())]
+    out_file: PathBuf,
+}
 
 fn main() -> Result<(), Box<dyn Error>> {
+    let opts: Args = Args::parse();
+
+    let file = std::fs::File::open(opts.in_file)?;
+
+    let buf_reader = BufReader::new(file);
+
+    let config = parse(buf_reader)?;
+
     tui::init_error_hooks()?;
     let terminal = tui::init_terminal()?;
 
-    let mut app = app::App::default();
+    let mut app = app::App::with_config(config);
+
     app.run(terminal)?;
 
     tui::restore_terminal()?;

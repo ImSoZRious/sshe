@@ -299,6 +299,16 @@ impl ConfigList {
 }
 
 impl App {
+    pub fn with_config(cfg: Vec<Config>) -> Self {
+        Self {
+            config_list: ConfigList {
+                items: cfg,
+                state: Default::default(),
+            },
+            ..Default::default()
+        }
+    }
+
     pub fn run(&mut self, mut terminal: Terminal<impl Backend>) -> io::Result<()> {
         while !self.should_exit {
             terminal.draw(|f| f.render_widget(&mut *self, f.size()))?;
@@ -406,10 +416,7 @@ impl App {
     }
 
     fn render_header(area: Rect, buf: &mut Buffer) {
-        Paragraph::new("Ratatui List Example")
-            .bold()
-            .centered()
-            .render(area, buf);
+        Paragraph::new("SSHE").bold().centered().render(area, buf);
     }
 
     fn render_footer(&self, area: Rect, buf: &mut Buffer) {
