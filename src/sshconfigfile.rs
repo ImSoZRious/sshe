@@ -1,4 +1,4 @@
-use std::{collections::HashMap, io::BufRead};
+use std::{collections::HashMap, io::{BufRead, BufWriter, Write}};
 
 use crate::sshconfig::{Config, Key};
 
@@ -54,4 +54,18 @@ pub fn parse<R: BufRead>(reader: R) -> Result<Vec<Config>, Box<dyn std::error::E
     }
 
     Ok(result)
+}
+
+pub fn save_config<T: Write>(writer: &mut BufWriter<T>, cfg: &[Config]) -> Result<(), Box<dyn std::error::Error>> {
+    for cfg in cfg {
+        writeln!(writer, "Host {}", cfg.host)?;
+
+        for (k, v) in &cfg.columns {
+            writeln!(writer, "  {} {}", k.str(), v)?;
+        }
+
+        writeln!(writer)?;
+    }
+
+    Ok(())
 }
