@@ -61,7 +61,7 @@ impl Main {
             KeyCode::Char('q') | KeyCode::Esc => self.quit(app),
             KeyCode::Char('j') | KeyCode::Down => self.select_next(app),
             KeyCode::Char('k') | KeyCode::Up => self.select_previous(app),
-            KeyCode::Char('l') | KeyCode::Right => self.state_next(app),
+            KeyCode::Char('l') | KeyCode::Right | KeyCode::Enter => self.state_next(app),
             KeyCode::Char('g') | KeyCode::Home => self.select_first(app),
             KeyCode::Char('G') | KeyCode::End => self.select_last(app),
             KeyCode::Char('d') | KeyCode::Delete => self.delete(app),
