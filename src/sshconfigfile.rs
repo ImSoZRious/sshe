@@ -45,7 +45,12 @@ pub fn parse<R: BufRead>(reader: R) -> Result<Vec<Config>, Box<dyn std::error::E
                 };
                 context = Some((value.to_owned(), HashMap::new()));
             }
-            other => if let Ok(key) = other.try_into() {
+            other => {
+                let key = match other.try_into() {
+                    Ok(x) => x,
+                    Err(_) => return Err(format!("Unknown key: `{}`", other).into()),
+                };
+
                 if let Some(ctx) = context.as_mut() {
                     ctx.1.insert(key, value.to_owned());
                 }

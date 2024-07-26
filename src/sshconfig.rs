@@ -62,7 +62,10 @@ key_literal!(
     Port,
     UserKnownHostsFile,
     PasswordAuthentication,
-    StrictHostKeyChecking
+    StrictHostKeyChecking,
+    Compression,
+    CompressionLevel,
+    SendEnv
 );
 
 pub struct Config {
