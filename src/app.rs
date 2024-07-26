@@ -268,6 +268,7 @@ impl Edit {
     }
 }
 
+#[derive(Default)]
 struct ConfigList {
     items: Vec<Config>,
     state: ListState,
@@ -282,18 +283,9 @@ impl Default for App {
     fn default() -> Self {
         Self {
             should_exit: false,
-            config_list: ConfigList::new(),
+            config_list: ConfigList::default(),
             config_content_list: ConfigContentList::default(),
             current_state: Some(AppState::Main(Main)),
-        }
-    }
-}
-
-impl ConfigList {
-    fn new() -> Self {
-        ConfigList {
-            items: Config::mock(),
-            state: ListState::default(),
         }
     }
 }
@@ -307,6 +299,10 @@ impl App {
             },
             ..Default::default()
         }
+    }
+
+    pub fn config(&self) -> &[Config] {
+        &self.config_list.items
     }
 
     pub fn run(&mut self, mut terminal: Terminal<impl Backend>) -> io::Result<()> {
@@ -421,9 +417,9 @@ impl App {
 
     fn render_footer(&self, area: Rect, buf: &mut Buffer) {
         let text = match self.current_state.as_ref().unwrap() {
-            AppState::Main(..) => "<arrow> move, d delete, n new, q quit, <right> select",
+            AppState::Main(..) => "<arrow> move, d delete, n new, q write and quit, <right> select",
             AppState::Select(..) => {
-                "<arrow> move, d delete, n new, q quit, <right> select, <left> back"
+                "<arrow> move, d delete, n new, q write and quit, <right> select, <left> back"
             }
             AppState::Edit(..) => "<esc> back, <enter> save",
             AppState::New(..) => "<esc> back, <enter> save",

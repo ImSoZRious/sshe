@@ -19,8 +19,8 @@ mod sshconfigfile;
 mod tui;
 
 use clap::Parser;
-use sshconfigfile::parse;
-use std::{error::Error, io::BufReader, path::PathBuf};
+use sshconfigfile::{parse, save_config};
+use std::{error::Error, io::{BufReader, BufWriter}, path::PathBuf};
 
 fn default_in_file() -> PathBuf {
     if let Some(x) = home::home_dir() {
@@ -67,5 +67,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     app.run(terminal)?;
 
     tui::restore_terminal()?;
+
+    let writer = std::fs::File::create(opts.out_file)?;
+    let mut buf_writer = BufWriter::new(writer);
+
+    save_config(&mut buf_writer, app.config())?;
+
     Ok(())
 }
