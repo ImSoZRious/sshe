@@ -14,7 +14,7 @@ use ratatui::{
     },
     Terminal,
 };
-use tui_textarea::TextArea;
+use tui_textarea::{CursorMove, TextArea};
 
 use crate::sshconfig::{self, Config, ALL_KEYS};
 
@@ -59,6 +59,7 @@ impl Main {
             KeyCode::Char('l') | KeyCode::Right => self.state_next(app),
             KeyCode::Char('g') | KeyCode::Home => self.select_first(app),
             KeyCode::Char('G') | KeyCode::End => self.select_last(app),
+            KeyCode::Char('d') | KeyCode::Delete => self.delete(app),
             _ => AppState::Main(self),
         };
 
@@ -100,6 +101,14 @@ impl Main {
         app.config_list.state.select_last();
         AppState::Main(self)
     }
+
+    fn delete(self, app: &mut App) -> AppState {
+        if let Some(i) = app.config_list.state.selected() {
+            app.config_list.items.remove(i);
+        }
+
+        AppState::Main(self)
+    }
 }
 
 impl Select {
@@ -110,6 +119,7 @@ impl Select {
             KeyCode::Char('k') | KeyCode::Up => self.select_previous(app),
             KeyCode::Char('h') | KeyCode::Left => self.state_back(),
             KeyCode::Char('l') | KeyCode::Right => self.state_next(app),
+            KeyCode::Char('d') | KeyCode::Delete => self.delete(app),
             _ => AppState::Select(self),
         };
 
@@ -139,12 +149,17 @@ impl Select {
         let cfg_idx = self.idx;
 
         if let Some(i) = app.config_content_list.state.selected() {
-            let value = app.config_list.items[cfg_idx].columns.get(&ALL_KEYS[i]).cloned();
+            let value = app.config_list.items[cfg_idx]
+                .columns
+                .get(&ALL_KEYS[i])
+                .cloned();
             let mut v = vec![];
             if let Some(x) = value {
                 v.push(x);
             }
-            let textarea = TextArea::new(v);
+            let mut textarea = TextArea::new(v);
+            textarea.set_cursor_line_style(Style::default());
+            textarea.move_cursor(CursorMove::End);
             AppState::Edit(Edit {
                 key: ALL_KEYS[i],
                 config_idx: cfg_idx,
@@ -154,13 +169,24 @@ impl Select {
             AppState::Select(self)
         }
     }
+
+    fn delete(self, app: &mut App) -> AppState {
+        if let Some(i) = app.config_content_list.state.selected() {
+            let cfg_idx = self.idx;
+            let key = ALL_KEYS[i];
+
+            app.config_list.items[cfg_idx].columns.remove(&key);
+        }
+
+        AppState::Select(self)
+    }
 }
 
 impl Edit {
     fn handle_key_edit(self, app: &mut App, key: KeyEvent) {
         let new_state = match key.code {
             KeyCode::Esc => self.state_back(),
-            KeyCode::Enter => self.state_save(),
+            KeyCode::Enter => self.state_save(app),
             _ => self.other_input(key),
         };
 
@@ -172,8 +198,19 @@ impl Edit {
         AppState::Select(Select { idx })
     }
 
-    fn state_save(self) -> AppState {
+    fn state_save(self, app: &mut App) -> AppState {
+        let textarea = &self.textarea;
         let idx = self.config_idx;
+
+        let content = textarea.lines()[0].to_owned();
+        let cfg = &mut app.config_list.items[self.config_idx];
+
+        if let Some(v) = cfg.columns.get_mut(&self.key) {
+            *v = content;
+        } else {
+            cfg.columns.insert(self.key, content);
+        }
+
         AppState::Select(Select { idx })
     }
 
