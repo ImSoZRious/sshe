@@ -58,6 +58,10 @@ pub fn parse<R: BufRead>(reader: R) -> Result<Vec<Config>, Box<dyn std::error::E
         }
     }
 
+    if let Some((host, map)) = context {
+        result.push(Config { host, columns: map });
+    };
+
     Ok(result)
 }
 
