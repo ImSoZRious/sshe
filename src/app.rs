@@ -318,7 +318,7 @@ impl App {
 
         let area = Rect::new(s_x, s_y, width, height);
         let block = Block::bordered()
-            .title(key.to_str())
+            .title(key.str())
             .border_set(border_style)
             .padding(Padding::horizontal(1));
         Clear.render(area, buf);
@@ -356,7 +356,7 @@ impl App {
             let mut items = vec![];
 
             ALL_KEYS.iter().for_each(|k| {
-                let key = k.to_str();
+                let key = k.str();
                 let value = config
                     .columns
                     .get(k)
@@ -398,7 +398,7 @@ impl App {
             .config_list
             .items
             .iter()
-            .map(|config| ListItem::from(config))
+            .map(ListItem::from)
             .collect();
 
         // Create a List from all list items and highlight the currently selected one
@@ -416,7 +416,7 @@ impl App {
 
 impl From<&Config> for ListItem<'_> {
     fn from(value: &Config) -> Self {
-        let line = Line::raw(format!("{}", value.host));
+        let line = Line::raw(value.host.to_owned());
         ListItem::new(line)
     }
 }

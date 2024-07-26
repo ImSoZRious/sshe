@@ -40,7 +40,7 @@ impl Config {
 }
 
 impl Key {
-    pub fn to_str(&self) -> &'static str {
+    pub fn str(&self) -> &'static str {
         match self {
             Key::Hostname => "Hostname",
             Key::User => "User",
