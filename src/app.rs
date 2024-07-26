@@ -1,4 +1,4 @@
-use std::io;
+use std::{collections::HashMap, io};
 
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
 use ratatui::{
@@ -34,11 +34,16 @@ pub struct App {
 }
 enum AppState {
     Main(Main),
+    New(New),
     Select(Select),
     Edit(Edit),
 }
 
 pub struct Main;
+
+pub struct New {
+    textarea: TextArea<'static>,
+}
 
 pub struct Select {
     idx: usize,
@@ -51,7 +56,7 @@ pub struct Edit {
 }
 
 impl Main {
-    fn handle_key_main(self, app: &mut App, key: KeyEvent) {
+    fn handle_key(self, app: &mut App, key: KeyEvent) {
         let new_state = match key.code {
             KeyCode::Char('q') | KeyCode::Esc => self.quit(app),
             KeyCode::Char('j') | KeyCode::Down => self.select_next(app),
@@ -60,6 +65,7 @@ impl Main {
             KeyCode::Char('g') | KeyCode::Home => self.select_first(app),
             KeyCode::Char('G') | KeyCode::End => self.select_last(app),
             KeyCode::Char('d') | KeyCode::Delete => self.delete(app),
+            KeyCode::Char('n') => self.state_new(),
             _ => AppState::Main(self),
         };
 
@@ -92,6 +98,13 @@ impl Main {
         }
     }
 
+    fn state_new(self) -> AppState {
+        let mut textarea = TextArea::new(vec![]);
+        textarea.set_cursor_line_style(Style::default());
+        textarea.move_cursor(CursorMove::End);
+        AppState::New(New { textarea })
+    }
+
     fn select_first(self, app: &mut App) -> AppState {
         app.config_list.state.select_first();
         AppState::Main(self)
@@ -111,14 +124,48 @@ impl Main {
     }
 }
 
+impl New {
+    fn handle_key(self, app: &mut App, key: KeyEvent) {
+        let new_state = match key.code {
+            KeyCode::Esc => self.state_back(),
+            KeyCode::Enter => self.state_save(app),
+            _ => self.other_input(key),
+        };
+
+        app.current_state = Some(new_state);
+    }
+
+    fn state_back(self) -> AppState {
+        AppState::Main(Main)
+    }
+
+    fn state_save(self, app: &mut App) -> AppState {
+        let textarea = &self.textarea;
+
+        let content = textarea.lines()[0].to_owned();
+
+        app.config_list.items.push(Config {
+            host: content,
+            columns: HashMap::new(),
+        });
+
+        AppState::Main(Main)
+    }
+
+    fn other_input(mut self, key: KeyEvent) -> AppState {
+        _ = self.textarea.input(key);
+        AppState::New(self)
+    }
+}
+
 impl Select {
-    fn handle_key_select(self, app: &mut App, key: KeyEvent) {
+    fn handle_key(self, app: &mut App, key: KeyEvent) {
         let new_state = match key.code {
             KeyCode::Char('q') | KeyCode::Esc => self.quit(app),
             KeyCode::Char('j') | KeyCode::Down => self.select_next(app),
             KeyCode::Char('k') | KeyCode::Up => self.select_previous(app),
-            KeyCode::Char('h') | KeyCode::Left => self.state_back(),
-            KeyCode::Char('l') | KeyCode::Right => self.state_next(app),
+            KeyCode::Char('h') | KeyCode::Left => self.state_back(app),
+            KeyCode::Char('l') | KeyCode::Right | KeyCode::Enter => self.state_next(app),
             KeyCode::Char('d') | KeyCode::Delete => self.delete(app),
             _ => AppState::Select(self),
         };
@@ -141,7 +188,8 @@ impl Select {
         AppState::Select(self)
     }
 
-    fn state_back(self) -> AppState {
+    fn state_back(self, app: &mut App) -> AppState {
+        app.config_content_list.state = ListState::default();
         AppState::Main(Main)
     }
 
@@ -183,7 +231,7 @@ impl Select {
 }
 
 impl Edit {
-    fn handle_key_edit(self, app: &mut App, key: KeyEvent) {
+    fn handle_key(self, app: &mut App, key: KeyEvent) {
         let new_state = match key.code {
             KeyCode::Esc => self.state_back(),
             KeyCode::Enter => self.state_save(app),
@@ -267,9 +315,10 @@ impl App {
         }
 
         match self.current_state.take() {
-            Some(AppState::Main(main)) => main.handle_key_main(self, key),
-            Some(AppState::Select(select)) => select.handle_key_select(self, key),
-            Some(AppState::Edit(edit)) => edit.handle_key_edit(self, key),
+            Some(AppState::Main(main)) => main.handle_key(self, key),
+            Some(AppState::Select(select)) => select.handle_key(self, key),
+            Some(AppState::Edit(edit)) => edit.handle_key(self, key),
+            Some(AppState::New(new)) => new.handle_key(self, key),
             None => unreachable!(),
         }
     }
@@ -288,16 +337,17 @@ impl Widget for &mut App {
             Layout::horizontal([Constraint::Fill(1), Constraint::Fill(1)]).areas(main_area);
 
         App::render_header(header_area, buf);
-        App::render_footer(footer_area, buf);
+        self.render_footer(footer_area, buf);
         self.render_list(index_area, buf);
         self.render_selected(selected_area, buf);
-        self.render_textarea(buf);
+        self.render_new_textarea(buf);
+        self.render_edit_textarea(buf);
     }
 }
 
 /// Rendering logic for the app
 impl App {
-    fn render_textarea(&mut self, buf: &mut Buffer) {
+    fn render_edit_textarea(&mut self, buf: &mut Buffer) {
         let border_style = match self.current_state {
             Some(AppState::Edit(..)) => symbols::border::ROUNDED,
             _ => symbols::border::PLAIN,
@@ -326,6 +376,35 @@ impl App {
         textarea.widget().render(area, buf);
     }
 
+    fn render_new_textarea(&mut self, buf: &mut Buffer) {
+        let border_style = match self.current_state {
+            Some(AppState::New(..)) => symbols::border::ROUNDED,
+            _ => symbols::border::PLAIN,
+        };
+
+        let textarea = match &mut self.current_state {
+            Some(AppState::New(new)) => &mut new.textarea,
+            _ => return,
+        };
+
+        let pref_width = 30;
+        let pref_height = 3;
+        let width = std::cmp::min(buf.area.width, pref_width);
+        let height = std::cmp::min(buf.area.height, pref_height);
+
+        let s_x = (buf.area.width - width) / 2;
+        let s_y = (buf.area.height - height) / 2;
+
+        let area = Rect::new(s_x, s_y, width, height);
+        let block = Block::bordered()
+            .title("New config")
+            .border_set(border_style)
+            .padding(Padding::horizontal(1));
+        Clear.render(area, buf);
+        textarea.set_block(block);
+        textarea.widget().render(area, buf);
+    }
+
     fn render_header(area: Rect, buf: &mut Buffer) {
         Paragraph::new("Ratatui List Example")
             .bold()
@@ -333,10 +412,16 @@ impl App {
             .render(area, buf);
     }
 
-    fn render_footer(area: Rect, buf: &mut Buffer) {
-        Paragraph::new("Use ↓↑ to move, → to select, g/G to go top/bottom.")
-            .centered()
-            .render(area, buf);
+    fn render_footer(&self, area: Rect, buf: &mut Buffer) {
+        let text = match self.current_state.as_ref().unwrap() {
+            AppState::Main(..) => "<arrow> move, d delete, n new, q quit, <right> select",
+            AppState::Select(..) => {
+                "<arrow> move, d delete, n new, q quit, <right> select, <left> back"
+            }
+            AppState::Edit(..) => "<esc> back, <enter> save",
+            AppState::New(..) => "<esc> back, <enter> save",
+        };
+        Paragraph::new(text).centered().render(area, buf);
     }
 
     fn render_selected(&mut self, area: Rect, buf: &mut Buffer) {
@@ -394,12 +479,7 @@ impl App {
             .padding(Padding::uniform(1));
 
         // Iterate through all elements in the `items` and stylize them.
-        let items: Vec<ListItem> = self
-            .config_list
-            .items
-            .iter()
-            .map(ListItem::from)
-            .collect();
+        let items: Vec<ListItem> = self.config_list.items.iter().map(ListItem::from).collect();
 
         // Create a List from all list items and highlight the currently selected one
         let list = List::new(items)
