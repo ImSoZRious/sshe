@@ -10,9 +10,25 @@ pub enum Key {
     Hostname,
     User,
     IdentityFile,
+    IdentitiesOnly,
+    LogLevel,
+    Port,
+    UserKnownHostsFile,
+    PasswordAuthentication,
+    StrictHostKeyChecking,
 }
 
-pub const ALL_KEYS: [Key; 3] = [Key::Hostname, Key::User, Key::IdentityFile];
+pub const ALL_KEYS: [Key; 9] = [
+    Key::Hostname,
+    Key::User,
+    Key::IdentityFile,
+    Key::IdentitiesOnly,
+    Key::LogLevel,
+    Key::Port,
+    Key::UserKnownHostsFile,
+    Key::PasswordAuthentication,
+    Key::StrictHostKeyChecking,
+];
 
 impl Config {
     pub fn mock() -> Vec<Self> {
@@ -55,6 +71,12 @@ impl Key {
             Hostname => "Hostname",
             User => "User",
             IdentityFile => "IdentityFile",
+            IdentitiesOnly => "IdentitiesOnly",
+            LogLevel => "LogLevel",
+            Port => "Port",
+            UserKnownHostsFile => "UserKnownHostsFile",
+            PasswordAuthentication => "PasswordAuthentication",
+            StrictHostKeyChecking => "StrictHostKeyChecking",
         }
     }
 }
